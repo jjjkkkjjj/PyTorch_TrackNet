@@ -1,0 +1,26 @@
+<annotation>
+  <folder>game1/Clip1</folder>
+  <filename>0000.jpg</filename>
+  <source>
+    <database>TrackNet</database>
+    <annotation>TrackNet</annotation>
+  </source>
+  <owner>
+    <name>Yu-Chuan Huang</name>
+  </owner>
+  <size>
+    <width>1280</width>
+    <height>720</height>
+    <depth>3</depth>
+  </size>
+  <visibility>1</visibility>
+  <status>0</status>
+  <ball>
+    <x>599</x>
+    <y>423</y>
+  </ball>
+  <ball>
+    <x>9</x>
+    <y>43</y>
+  </ball>
+</annotation>
