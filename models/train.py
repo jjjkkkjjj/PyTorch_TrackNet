@@ -1,4 +1,5 @@
 from ._utils import _weights_path
+from .graph import LiveGraph
 
 import torch
 import time
@@ -14,7 +15,7 @@ from datetime import date
 
 
 class Trainer(object):
-    def __init__(self, model, loss_func, optimizer, scheduler=None, gpu=True, log_interval=100, live_graph=False, plot_yrange=(0, 0.16)):
+    def __init__(self, model, loss_func, optimizer, scheduler=None, gpu=True, log_interval=100, live_graph=None):
         self.gpu = gpu
 
         self.model = model.cuda() if self.gpu else model
@@ -25,13 +26,6 @@ class Trainer(object):
 
         self.scheduler = scheduler
 
-        self.live_graph = live_graph
-        if self.live_graph:
-            logging.info("You should use jupyter notebook")
-        self._plot_yrange = plot_yrange
-
-        self.train_losses = []
-        self.train_losses_epoch = []
         self.test_losses = []
 
         self.log_interval = log_interval
@@ -42,57 +36,21 @@ class Trainer(object):
         return self.model.__class__.__name__.lower()
     """
 
-    def train(self, epochs, train_loader, savemodelname='tracknet', checkpoints_interval=50, max_checkpoints=15):
+    def train(self, epochs, train_loader, savemodelname='tracknet', checkpoints_epoch_interval=50, max_checkpoints=15, live_graph=None):
         """
-        :param iterations: int, how many iterations during training
+        :param epochs: int, how many iterations during training
         :param train_loader: Dataloader, must return Tensor of images and ground truthes
         :param savemodelname: (Optional) str or None, saved model name. if it's None, model will not be saved after finishing training.
-        :param checkpoints_interval: (Optional) int or None, Whether to save for each designated iteration or not. if it's None, model will not be saved.
+        :param checkpoints_epoch_interval: (Optional) int or None, Whether to save for each designated iteration or not. if it's None, model will not be saved.
         :param max_checkpoints: (Optional) int, how many models will be saved during training.
         :return:
         """
-        if savemodelname is None:
-            logging.warning('Training model will not be saved!!!')
-
-        if checkpoints_interval and max_checkpoints > 15:
-            logging.warning('One model size will be about 0.1 GB. Please take care your storage.')
-
         self.model.train()
 
-        savedir = _weights_path(__file__, _root_num=2, dirname='weights')
-        save_checkpoints_dir = os.path.join(savedir, 'checkpoints')
-        today = '{:%Y%m%d}'.format(date.today())
+        log_manager = _LogManager(savemodelname, checkpoints_epoch_interval, max_checkpoints, epochs, live_graph)
 
-        # check existing checkpoints file
-        filepaths = sorted(glob(os.path.join(save_checkpoints_dir, savemodelname + '_e[-]*_checkpoints{}.pth'.format(today))))
-        if len(filepaths) > 0:
-            logging.warning('Today\'s checkpoints is remaining. Remove them?\nInput any key. [n]/y')
-            i = input()
-            if re.match(r'y|yes', i, flags=re.IGNORECASE):
-                for file in filepaths:
-                    os.remove(file)
-                logging.warning('Removed {}'.format(filepaths))
-            else:
-                logging.warning('Please rename them.')
-                exit()
-
-        if self.live_graph:
-            # initialise the graph and settings
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            plt.ion()
-
-            fig.show()
-            fig.canvas.draw()
-
-
-        template = 'Epoch {}, Loss: {:.5f}, Accuracy: {:.5f}, Test Loss: {:.5f}, Test Accuracy: {:.5f}, elapsed_time {:.5f}'
-        iter_template = 'Training... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
-        _finish = False
         for epoch in range(1, epochs + 1):
             for _iteration, (images, gts) in enumerate(train_loader):
-                now_iter = _iteration + 1
-
                 self.optimizer.zero_grad()
 
                 if self.gpu:
@@ -111,100 +69,134 @@ class Trainer(object):
                 #print(self.model.feature_layers.conv1_1.weight.grad)
 
                 self.optimizer.step()
-                self.scheduler.step()
-            continue
+                if self.scheduler:
+                    self.scheduler.step()
+            
+                # update log
+                log_manager.update_log(epoch, _iteration + 1, batch_num=len(images), data_num=len(train_loader.dataset),
+                                       iter_per_epoch=len(train_loader), lossval=loss.item())
+
+
             # save checkpoints
-            appx_info = ''
-            if epoch % checkpoints_interval == 0 and savemodelname and epoch != epochs:
-                filepaths = sorted(glob(os.path.join(save_checkpoints_dir, savemodelname + '_e[-]*_checkpoints{}.pth'.format(today))))
+            log_manager.save_checkpoints_model(epoch, self.model)
 
-                #filepaths = [path for path in os.listdir(save_checkpoints_dir) if re.search(savemodelname + '_i\-*_checkpoints{}.pth'.format(today), path)]
-                #print(filepaths)
-                removedinfo = ''
-                # remove oldest checkpoints
-                if len(filepaths) > max_checkpoints - 1:
-                    removedinfo += os.path.basename(filepaths[0])
-                    os.remove(filepaths[0])
-
-                savepath = os.path.join(save_checkpoints_dir, savemodelname + '_e-{:07d}_checkpoints{}.pth'.format(epoch, today))
-                torch.save(self.model.state_dict(), savepath)
-
-                # append information for verbose
-                appx_info += 'Saved model to {}'.format(savepath)
-                if removedinfo != '':
-                    if self.live_graph:
-                        removedinfo = '\nRemoved {}'.format(removedinfo)
-                    else:
-                        removedinfo = ' and removed {}'.format(removedinfo)
-
-                appx_info = '\n' + 'Saved model as {}{}'.format(os.path.basename(savepath), removedinfo)
-
-            #print([param_group['lr'] for param_group in self.optimizer.param_groups])
-            # store log
-            self.train_losses.append(loss.item())
-            self.train_losses_epoch.append(epoch)
-
-            # update information to show
-            if self.live_graph:
-                ax.clear()
-                # plot
-                ax.plot(self.train_losses_epoch, self.train_losses)
-                # ax.axis(xmin=0, xmax=iterations) # too small to see!!
-                if self._plot_yrange:
-                    ax.axis(ymin=self._plot_yrange[0], ymax=self._plot_yrange[1])
-                if appx_info == '':
-                    ax.set_title('Learning curve\nEpoch: {}, Iteration: {}, Loss: {}'.format(epoch, total_iteration,
-                                                                                             loss.item()) + appx_info)
-                else:
-                    ax.set_title('Learning curve\nEpoch: {}, Iteration: {}, Loss: {}'.format(epoch, total_iteration,
-                                                                                             loss.item()) + appx_info,
-                                 fontsize=8)
-                ax.set_xlabel('iteration')
-                ax.set_ylabel('loss')
-                # update
-                fig.canvas.draw()
-
-                """
-                # not showing
-                print(iter_template.format(
-                    epoch, now_iter, now_iter * len(images), len(train_loader.dataset),
-                           100. * now_iter / len(train_loader), loss.item()))
-                """
-
-            print(iter_template.format(
-                        epoch, now_iter, now_iter * len(images), len(train_loader.dataset),
-                               100. * now_iter / len(train_loader), loss.item()) + appx_info)
-
-            #elif not self.live_graph and appx_info != '':
-            #    print(appx_info[1:])
-
-
-
-            """
-            for test_image, test_label in zip(test_images, test_labels):
-                self._test_step(test_image, test_label)
-
-            print(template.format(epoch + 1,
-                                  self.train_loss.result(),
-                                  self.train_acc.result() * 100,
-                                  self.test_loss.result(),
-                                  self.test_acc.result() * 100,
-                                  elapsed_time))
-            """
         print('Training finished')
-        if savemodelname:
-            savepath = os.path.join(savedir, savemodelname + '_i-{}.pth'.format(iterations))
-            torch.save(self.model.state_dict(), savepath)
+        log_manager.save_model(self.model)
+            
+class _LogManager(object):
+    def __init__(self, savemodelname, checkpoints_epoch_interval, max_checkpoints, epochs, live_graph):
+        if savemodelname is None:
+            logging.warning('Training model will not be saved!!!')
+
+        if checkpoints_epoch_interval and max_checkpoints > 15:
+            logging.warning('One model size will be about 0.1 GB. Please take care your storage.')
+
+        savedir = _weights_path(__file__, _root_num=2, dirname='weights')
+        save_checkpoints_dir = os.path.join(savedir, 'checkpoints')
+        today = '{:%Y%m%d}'.format(date.today())
+
+        # check existing checkpoints file
+        filepaths = sorted(
+            glob(os.path.join(save_checkpoints_dir, savemodelname + '_e[-]*_checkpoints{}.pth'.format(today))))
+        if len(filepaths) > 0:
+            logging.warning('Today\'s checkpoints is remaining. Remove them?\nInput any key. [n]/y')
+            i = input()
+            if re.match(r'y|yes', i, flags=re.IGNORECASE):
+                for file in filepaths:
+                    os.remove(file)
+                logging.warning('Removed {}'.format(filepaths))
+            else:
+                logging.warning('Please rename them.')
+                exit()
+
+        if live_graph:
+            logging.info("You should use jupyter notebook")
+            if not isinstance(live_graph, LiveGraph):
+                raise ValueError('live_graph must inherit LivaGraph')
+
+            # initialise the graph and settings
+            live_graph.initialize()
+
+        # log's info
+        self.savedir = savedir
+        self.save_checkpoints_dir = save_checkpoints_dir
+        self.savemodelname = savemodelname
+        self.today = today
+
+        # parameters
+        self.checkpoints_epoch_interval = checkpoints_epoch_interval
+        self.max_checkpoints = max_checkpoints
+        self.epochs = epochs
+        self.live_graph = live_graph
+
+        self.train_losses = []
+        self.train_losses_epoch = []
+        
+    def update_log(self, epoch, iteration, batch_num,
+                   data_num, iter_per_epoch, lossval):
+        #template = 'Epoch {}, Loss: {:.5f}, Accuracy: {:.5f}, Test Loss: {:.5f}, Test Accuracy: {:.5f}, elapsed_time {:.5f}'
+        iter_template = 'Training... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
+
+        print(iter_template.format(
+            epoch, iteration, iteration * batch_num, data_num,
+                             100. * iteration / iter_per_epoch, lossval))
+
+        self.train_losses.append(lossval)
+        self.train_losses_epoch.append(epoch)
+
+        if self.live_graph:
+            self.live_graph.redraw(epoch, iteration, self.train_losses_epoch, self.train_losses)
+
+    def save_checkpoints_model(self, epoch, model):
+        info = ''
+        if epoch % self.checkpoints_epoch_interval == 0 and self.savemodelname and epoch != self.epochs:
+            filepaths = sorted(
+                glob(os.path.join(self.save_checkpoints_dir,
+                                  self.savemodelname + '_e[-]*_checkpoints{}.pth'.format(self.today))))
+
+            # filepaths = [path for path in os.listdir(save_checkpoints_dir) if re.search(savemodelname + '_i\-*_checkpoints{}.pth'.format(today), path)]
+            # print(filepaths)
+            removedinfo = ''
+            # remove oldest checkpoints
+            if len(filepaths) > self.max_checkpoints - 1:
+                removedinfo += os.path.basename(filepaths[0])
+                os.remove(filepaths[0])
+
+
+            # save model
+            savepath = os.path.join(self.save_checkpoints_dir,
+                                    self.savemodelname + '_e-{:07d}_checkpoints{}.pth'.format(epoch, self.today))
+            torch.save(model.state_dict(), savepath)
+
+            # append information for verbose
+            info += 'Saved model to {}'.format(savepath)
+            if removedinfo != '':
+                if self.live_graph:
+                    removedinfo = '\nRemoved {}'.format(removedinfo)
+                    info = '\n' + 'Saved model as {}{}'.format(os.path.basename(savepath), removedinfo)
+                    self.live_graph.update_info(info)
+                else:
+                    removedinfo = ' and removed {}'.format(removedinfo)
+                    info = '\n' + 'Saved model as {}{}'.format(os.path.basename(savepath), removedinfo)
+                    print(info)
+
+    def save_model(self, model):
+        if self.savemodelname:
+            # model
+            savepath = os.path.join(self.savedir, self.savemodelname + '_e-{}.pth'.format(self.epochs))
+            torch.save(model.state_dict(), savepath)
             print('Saved model to {}'.format(savepath))
 
-            savepath = os.path.join(savedir, savemodelname + '_learning-curve_i-{}.png'.format(iterations))
+
+            # graph
+            savepath = os.path.join(self.savedir, self.savemodelname + '_learning-curve_e-{}.png'.format(self.epochs))
             # initialise the graph and settings
             fig = plt.figure()
             ax = fig.add_subplot(111)
             plt.ion()
             ax.clear()
             # plot
-            ax.plot(self.train_losses_iter, self.train_losses)
+            ax.plot(self.train_losses_epoch, self.train_losses)
             ax.set_title('Learning curve')
             ax.set_xlabel('iteration')
             ax.set_ylabel('loss')
