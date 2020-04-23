@@ -15,7 +15,7 @@ from datetime import date
 
 
 class Trainer(object):
-    def __init__(self, model, loss_func, optimizer, scheduler=None, gpu=True, log_interval=100, live_graph=None):
+    def __init__(self, model, loss_func, optimizer, scheduler=None, gpu=True, log_interval=100):
         self.gpu = gpu
 
         self.model = model.cuda() if self.gpu else model
@@ -129,22 +129,24 @@ class _LogManager(object):
         self.live_graph = live_graph
 
         self.train_losses = []
-        self.train_losses_epoch = []
+        self.train_losses_iteration = []
+        self.total_iteration = 0
         
     def update_log(self, epoch, iteration, batch_num,
                    data_num, iter_per_epoch, lossval):
         #template = 'Epoch {}, Loss: {:.5f}, Accuracy: {:.5f}, Test Loss: {:.5f}, Test Accuracy: {:.5f}, elapsed_time {:.5f}'
         iter_template = 'Training... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
 
-        print(iter_template.format(
-            epoch, iteration, iteration * batch_num, data_num,
-                             100. * iteration / iter_per_epoch, lossval))
-
+        self.total_iteration += 1
         self.train_losses.append(lossval)
-        self.train_losses_epoch.append(epoch)
+        self.train_losses_iteration.append(self.total_iteration)
 
         if self.live_graph:
-            self.live_graph.redraw(epoch, iteration, self.train_losses_epoch, self.train_losses)
+            self.live_graph.redraw(epoch, iteration, self.train_losses_iteration, self.train_losses)
+        else:
+            print(iter_template.format(
+                epoch, iteration, iteration * batch_num, data_num,
+                                  100. * iteration / iter_per_epoch, lossval))
 
     def save_checkpoints_model(self, epoch, model):
         info = ''
@@ -195,7 +197,7 @@ class _LogManager(object):
             plt.ion()
             ax.clear()
             # plot
-            ax.plot(self.train_losses_epoch, self.train_losses)
+            ax.plot(self.train_losses_iteration, self.train_losses)
             ax.set_title('Learning curve')
             ax.set_xlabel('iteration')
             ax.set_ylabel('loss')

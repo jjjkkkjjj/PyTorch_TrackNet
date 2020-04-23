@@ -6,5 +6,6 @@ class CrossEntropy(nn.CrossEntropyLoss):
         super().__init__(*args, **kwargs)
 
     def forward(self, input, target):
-
-        return -(target * torch.log(input)).mean()
+        batch_num = input.shape[0]
+        loss = -(target * torch.log(input)).view(batch_num, -1).mean(dim=1)
+        return loss.sum()

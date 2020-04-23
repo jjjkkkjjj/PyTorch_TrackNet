@@ -7,7 +7,7 @@ class LiveGraph(object):
 
         self.fig = None
         self.ax = None
-        self.train_losses_epoch = []
+        self.train_losses_iteration = []
         self.train_losses = []
 
     def initialize(self):
@@ -19,16 +19,16 @@ class LiveGraph(object):
         self.fig.show()
         self.fig.canvas.draw()
 
-    def redraw(self, epoch, iteration, losses_epoch, losses):
+    def redraw(self, epoch, iteration, losses_iteration, losses):
         if self.fig is None or self.ax is None:
             raise NotImplementedError('Call initialize first!')
 
-        self.train_losses_epoch = losses_epoch
+        self.train_losses_iteration = losses_iteration
         self.train_losses = losses
 
         self.ax.clear()
         # plot
-        self.ax.plot(self.train_losses_epoch, self.train_losses)
+        self.ax.plot(self.train_losses_iteration, self.train_losses)
         # self.ax.axis(xmin=0, xmax=iterations) # too small to see!!
         if self.yrange:
             self.ax.axis(ymin=self.yrange[0], ymax=self.yrange[1])
@@ -47,7 +47,7 @@ class LiveGraph(object):
 
         self.ax.clear()
         # plot
-        self.ax.plot(self.train_losses_epoch, self.train_losses)
+        self.ax.plot(self.train_losses_iteration, self.train_losses)
         # self.ax.axis(xmin=0, xmax=iterations) # too small to see!!
         if self.yrange:
             self.ax.axis(ymin=self.yrange[0], ymax=self.yrange[1])
