@@ -3,7 +3,7 @@ from pathlib import Path
 import os, cv2
 import numpy as np
 from PIL import Image
-import torch
+import torch, warnings
 
 from ._utils import _generate_annotaion_xml, _thisdir, get_image, get_balls
 
@@ -74,7 +74,10 @@ class TrackNetTennisDataset(Dataset):
 
 
         imgs = torch.cat(imgs, dim=0)
-        targets = np.mean(np.concatenate(targets, axis=0), axis=0, keepdims=True)
+        with warnings.catch_warnings():# ignore warning
+            warnings.filterwarnings('ignore', r'Mean of empty slice')
+            targets = np.nanmean(np.concatenate(targets, axis=0), axis=0, keepdims=True)
+
         if self.target_transform is not None:
             targets = self.target_transform(targets)
 

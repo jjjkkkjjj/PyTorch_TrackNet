@@ -13,5 +13,7 @@ if __name__ == '__main__':
     ])
 
     dataset = AllTrackNetTennis(seq_num=3, transform=transform, target_transform=target_transform)
-    a = dataset[-1]
+    #a = dataset[0]
+    # no ball
+    a = dataset[74]
     exit()

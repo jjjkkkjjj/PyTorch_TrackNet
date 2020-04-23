@@ -17,7 +17,7 @@ class Conv2dRelu:
         kernel_size = kwargs.pop('conv_k_size', (3, 3))
         stride = kwargs.pop('conv_stride', (1, 1))
         padding = kwargs.pop('conv_padding', 1)
-        relu_inplace = kwargs.pop('relu_inplace', False)# TODO relu inplace problem >>conv4
+        relu_inplace = kwargs.pop('relu_inplace', True)# TODO relu inplace problem >>conv4
         batch_norm = kwargs.pop('batch_norm', Conv2dRelu.batch_norm)
 
         in_c = in_channels
@@ -52,7 +52,7 @@ class Conv2dRelu:
         return layers
 
     @staticmethod
-    def one(postfix, *args, relu_inplace=False, **kwargs):
+    def one(postfix, *args, relu_inplace=True, **kwargs):
         batch_norm = kwargs.pop('batch_norm', Conv2dRelu.batch_norm)
         if not batch_norm:
             return [
@@ -83,11 +83,11 @@ class Deconv2dRelu:
         """
         layers = []
 
-        kernel_size = kwargs.pop('upsample_k_size', (2, 2))
-        scale_factor = kwargs.pop('scale_factor', None)
+        size = kwargs.pop('upsample_size', None)
+        scale_factor = kwargs.pop('scale_factor', 2)
         # append upsampling
         layers += [
-            ('upsample{}'.format(order), nn.UpsamplingNearest2d(kernel_size, scale_factor=scale_factor))
+            ('upsample{}'.format(order), nn.UpsamplingNearest2d(size, scale_factor=scale_factor))
         ]
 
         kernel_size = kwargs.pop('deconv_k_size', (3, 3))
@@ -103,13 +103,13 @@ class Deconv2dRelu:
             if not batch_norm:
                 layers += [
                     ('deconv{}'.format(postfix),
-                     nn.ConvTranspose2d(in_c, out_channels, kernel_size, stride=stride, padding=padding)),
+                     nn.Conv2d(in_c, out_channels, kernel_size, stride=stride, padding=padding)),
                     ('relu{}'.format(postfix), nn.ReLU(relu_inplace))
                 ]
             else:
                 layers += [
                     ('deconv{}'.format(postfix),
-                     nn.ConvTranspose2d(in_c, out_channels, kernel_size, stride=stride, padding=padding)),
+                     nn.Conv2d(in_c, out_channels, kernel_size, stride=stride, padding=padding)),
                     ('bn{}'.format(postfix), nn.BatchNorm2d(out_channels)),
                     ('relu{}'.format(postfix), nn.ReLU(relu_inplace))
                 ]
@@ -122,13 +122,13 @@ class Deconv2dRelu:
         batch_norm = kwargs.pop('batch_norm', Deconv2dRelu.batch_norm)
         if not batch_norm:
             return [
-                ('deconv{}'.format(postfix), nn.ConvTranspose2d(*args, **kwargs)),
+                ('deconv{}'.format(postfix), nn.Conv2d(*args, **kwargs)),
                 ('relu{}'.format(postfix), nn.ReLU(inplace=relu_inplace))
             ]
         else:
             out_channels = kwargs.pop('out_channels', args[1])
             return [
-                ('deconv{}'.format(postfix), nn.ConvTranspose2d(*args, **kwargs)),
+                ('deconv{}'.format(postfix), nn.Conv2d(*args, **kwargs)),
                 ('bn{}'.format(postfix), nn.BatchNorm2d(out_channels)),
                 ('relu{}'.format(postfix), nn.ReLU(inplace=relu_inplace))
             ]

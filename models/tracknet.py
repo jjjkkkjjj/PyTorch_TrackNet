@@ -45,7 +45,7 @@ class TrackNet(nn.Module):
         self.tracknet_layers = nn.ModuleDict(OrderedDict(vgg_layers + deconvnet_layers))
 
         feature_layers = [
-            *Conv2dRelu.one('8', 64, 256, kernel_size=(3, 3)),
+            *Conv2dRelu.one('8', 64, 256, kernel_size=(3, 3), padding=1),
 
             ('softmax', nn.Softmax(dim=1)) # dim = 1 means along with channel of (b, c, h, w)
         ]
@@ -64,11 +64,15 @@ class TrackNet(nn.Module):
         return self.image_shape[2] * self.seq_num
 
     def forward(self, x):
+        for name, layer in self.tracknet_layers.items():
+            x = layer(x)
 
+        for name, layer in self.feature_layers.items():
+            x = layer(x)
 
-        x = self.tracknet_layers(x)
-        x = self.feature_layers(x)
+        if self.training:
+            return x # shape = (h, w, c)
+        else:
 
-        heatmap = self.heatmap(x)
-
-        return heatmap
+            heatmap = self.heatmap(x) # shape = (h, w)
+            return heatmap

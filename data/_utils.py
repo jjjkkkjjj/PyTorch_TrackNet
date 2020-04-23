@@ -178,6 +178,9 @@ def get_balls(xml_posixpath):
     with open(xml_posixpath) as f:
         tree = ET.parse(f, parser=parser)
 
+        if int(tree.find('visibility').text) == 0:# no ball
+            return np.array([[np.nan, np.nan]])
+
         balls = []
         for ball_tree in tree.iter('ball'):
             #print(ball.find('x').text, ball.find('y').text)

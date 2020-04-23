@@ -39,6 +39,9 @@ class GaussianHeatMap(object):
         exponent = -((np.power(x - balls[:, :, :, 0], 2) + np.power(y - balls[:, :, :, 1], 2))/(2*self.sigma2))
         g = np.exp(exponent) * 255
 
+        # nan means no ball
+        g[np.isnan(g)] = 0
+
         g[g < self.threshold] = 0
 
         # sum and clamp
