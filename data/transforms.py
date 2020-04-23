@@ -49,3 +49,25 @@ class GaussianHeatMap(object):
         g = np.clip(g, 0, 255)
 
         return g
+
+class LossHeatMap(object):
+    def __init__(self, channel):
+        self.channel = channel
+
+    def __call__(self, target):
+        """
+        convert target to the one for loss function
+        :param target: ndarray, shape = (h, w)
+        :return: target: ndarray, shape = (channel, h, w), formula is below;
+                         Q(:,i,j,k) = 1 if target[:,i,j] = k, else 0
+        """
+        int_target = target.astype(np.int)
+        h, w = target.shape
+        ret_target = np.zeros((self.channel, h, w))
+
+        for k in range(self.channel):
+            mask = int_target == k
+            ret_target[k, mask] = 1
+
+        return ret_target
+

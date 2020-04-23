@@ -1,13 +1,12 @@
 from models.tracknet import TrackNet
 from models.train import Trainer
+from models.loss import CrossEntropy
 from data.datasets import AllTrackNetTennis
-from data.transforms import GaussianHeatMap
-
+from data.transforms import GaussianHeatMap, LossHeatMap
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import *
 from torch.optim.adadelta import Adadelta
-from torch.nn import CrossEntropyLoss
 
 if __name__ == '__main__':
     transform = Compose([
@@ -15,7 +14,8 @@ if __name__ == '__main__':
         ToTensor()
     ])
     target_transform = Compose([
-        GaussianHeatMap((360, 640), sigma2=10, threshold=128)
+        GaussianHeatMap((360, 640), sigma2=10, threshold=128),
+        LossHeatMap(256)
     ])
 
     train_dataset = AllTrackNetTennis(seq_num=3, transform=transform, target_transform=target_transform)
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     model = TrackNet(image_shape=(360, 640, 3), seq_num=3, batch_norm=True)
     print(model)
 
-    loss_func = CrossEntropyLoss()
+    loss_func = CrossEntropy()
     optimizer = Adadelta(model.parameters(), lr=1.0)
     trainer = Trainer(model, loss_func=loss_func, optimizer=optimizer, scheduler=None, gpu=True)
 
