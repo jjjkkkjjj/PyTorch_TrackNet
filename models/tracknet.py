@@ -3,6 +3,7 @@ from torch import nn
 from collections import OrderedDict
 
 from ._layerutils import *
+from .layers import HeatMap
 
 class TrackNet(nn.Module):
     def __init__(self, image_shape=(360, 640, 3), seq_num=3, batch_norm=True):
@@ -46,10 +47,11 @@ class TrackNet(nn.Module):
         feature_layers = [
             *Conv2dRelu.one('8', 64, 256, kernel_size=(3, 3)),
 
-            ('softmax', nn.Softmax(dim=1))
+            ('softmax', nn.Softmax(dim=1)) # dim = 1 means along with channel of (b, c, h, w)
         ]
         self.feature_layers = nn.ModuleDict(feature_layers)
 
+        self.heatmap = HeatMap()
 
     @property
     def input_height(self):
@@ -62,5 +64,11 @@ class TrackNet(nn.Module):
         return self.image_shape[2] * self.seq_num
 
     def forward(self, x):
+
+
         x = self.tracknet_layers(x)
-        output = self.feature_layers(x)
+        x = self.feature_layers(x)
+
+        heatmap = self.heatmap(x)
+
+        return heatmap

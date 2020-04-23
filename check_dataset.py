@@ -9,10 +9,9 @@ if __name__ == '__main__':
         ToTensor()
     ])
     target_transform = Compose([
-        GaussianHeatMap((360, 640), sigma2=10, threshold=128),
-        ToTensor()
+        GaussianHeatMap((360, 640), sigma2=10, threshold=128)
     ])
 
-    dataset = AllTrackNetTennis(transform=transform, target_transform=target_transform)
-    a = dataset[0]
+    dataset = AllTrackNetTennis(seq_num=3, transform=transform, target_transform=target_transform)
+    a = dataset[-1]
     exit()

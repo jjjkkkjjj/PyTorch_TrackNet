@@ -2,6 +2,14 @@
 data/tennis_tracknet/*
 !.gitkeep
 
+# weights
+weights/*
+!weights/checkpoints/
+!.gitkeep
+
+weights/checkpoints/*
+!.gitkeep
+
 # Created by https://www.gitignore.io/api/linux,macos,python,pycharm+all,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=linux,macos,python,pycharm+all,jupyternotebooks
 

@@ -41,4 +41,8 @@ class GaussianHeatMap(object):
 
         g[g < self.threshold] = 0
 
+        # sum and clamp
+        g = np.sum(g, axis=0)
+        g = np.clip(g, 0, 255)
+
         return g

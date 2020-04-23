@@ -50,21 +50,20 @@ class Trainer(object):
         log_manager = _LogManager(savemodelname, checkpoints_epoch_interval, max_checkpoints, epochs, live_graph)
 
         for epoch in range(1, epochs + 1):
-            for _iteration, (images, gts) in enumerate(train_loader):
+            for _iteration, (images, targets) in enumerate(train_loader):
                 self.optimizer.zero_grad()
 
                 if self.gpu:
                     images = images.cuda()
-                    gts = gts.cuda()
+                    targets = targets.cuda()
 
                 # set variable
                 #images.requires_grad = True
                 #gts.requires_grad = True
 
-                predicts, dboxes = self.model(images)
-                if self.gpu:
-                    dboxes = dboxes.cuda()
-                loss = self.loss_func(predicts, gts, dboxes=dboxes)
+                predicts = self.model(images)
+
+                loss = self.loss_func(predicts, targets)
                 loss.backward() # calculate gradient for value with requires_grad=True, shortly back propagation
                 #print(self.model.feature_layers.conv1_1.weight.grad)
 
