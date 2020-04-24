@@ -2,7 +2,7 @@ from ._utils import _weights_path
 from .graph import LiveGraph
 
 import torch
-import time
+import sys
 import logging
 import os, re
 import matplotlib.pyplot as plt
@@ -138,7 +138,7 @@ class _LogManager(object):
     def update_log(self, epoch, iteration, batch_num,
                    data_num, iter_per_epoch, lossval):
         #template = 'Epoch {}, Loss: {:.5f}, Accuracy: {:.5f}, Test Loss: {:.5f}, Test Accuracy: {:.5f}, elapsed_time {:.5f}'
-        iter_template = 'Training... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
+        iter_template = '\rTraining... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
         """
         self.total_iteration += 1
         self.train_losses.append(lossval)
@@ -151,9 +151,10 @@ class _LogManager(object):
                 epoch, iteration, iteration * batch_num, data_num,
                                   100. * iteration / iter_per_epoch, lossval))
         """
-        print(iter_template.format(
+        sys.stdout.write(iter_template.format(
             epoch, iteration, iteration * batch_num, data_num,
                               100. * iteration / iter_per_epoch, lossval))
+        sys.stdout.flush()
 
     def store_iter_loss(self, lossval):
         self.total_iteration += 1
@@ -166,6 +167,7 @@ class _LogManager(object):
         if self.live_graph:
             self.live_graph.redraw(epoch, self.total_iteration, np.arange(1, epoch + 1), self.train_losses)
         else:
+            print('')
             iter_template = 'Training... Epoch: {}, Iter: {},\tLoss: {:.6f}'
             print(iter_template.format(
                 epoch, self.total_iteration, self.train_losses[-1]))
