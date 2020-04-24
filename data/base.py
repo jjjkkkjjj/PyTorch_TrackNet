@@ -22,7 +22,7 @@ class TrackNetTennisDataset(Dataset):
         self._anno_posixpaths = []
         for game_dir in self._games_dir:
             anno_posixpaths = sorted(Path(os.path.join(_thisdir, 'tennis_tracknet', game_dir)).rglob('*.xml'), key=lambda posixpath: str(posixpath))
-            self._anno_posixpaths += anno_posixpaths
+            self._anno_posixpaths.extend(anno_posixpaths)
 
     #def _jpgpath(self, folder, filename):
 
@@ -72,8 +72,10 @@ class TrackNetTennisDataset(Dataset):
             imgs += [img]
             targets += [target]
 
-
-        imgs = torch.cat(imgs, dim=0)
+        if all([isinstance(img, torch.Tensor) for img in imgs]):
+            imgs = torch.cat(imgs, dim=0)
+        else:
+            imgs = np.concatenate(imgs, axis=2)
         with warnings.catch_warnings():# ignore warning
             warnings.filterwarnings('ignore', r'Mean of empty slice')
             targets = np.nanmean(np.concatenate(targets, axis=0), axis=0, keepdims=True)

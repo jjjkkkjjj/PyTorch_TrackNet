@@ -6,7 +6,7 @@ import time
 import logging
 import os, re
 import matplotlib.pyplot as plt
-import math
+import numpy as np
 from glob import glob
 from datetime import date
 """
@@ -74,7 +74,9 @@ class Trainer(object):
                 # update log
                 log_manager.update_log(epoch, _iteration + 1, batch_num=len(images), data_num=len(train_loader.dataset),
                                        iter_per_epoch=len(train_loader), lossval=loss.item())
-
+                log_manager.store_iter_loss(lossval=loss.item())
+            # update info
+            log_manager.update_log_epoch(epoch)
 
             # save checkpoints
             log_manager.save_checkpoints_model(epoch, self.model)
@@ -131,12 +133,13 @@ class _LogManager(object):
         self.train_losses = []
         self.train_losses_iteration = []
         self.total_iteration = 0
-        
+
+
     def update_log(self, epoch, iteration, batch_num,
                    data_num, iter_per_epoch, lossval):
         #template = 'Epoch {}, Loss: {:.5f}, Accuracy: {:.5f}, Test Loss: {:.5f}, Test Accuracy: {:.5f}, elapsed_time {:.5f}'
         iter_template = 'Training... Epoch: {}, Iter: {},\t [{}/{}\t ({:.0f}%)]\tLoss: {:.6f}'
-
+        """
         self.total_iteration += 1
         self.train_losses.append(lossval)
         self.train_losses_iteration.append(self.total_iteration)
@@ -147,6 +150,25 @@ class _LogManager(object):
             print(iter_template.format(
                 epoch, iteration, iteration * batch_num, data_num,
                                   100. * iteration / iter_per_epoch, lossval))
+        """
+        print(iter_template.format(
+            epoch, iteration, iteration * batch_num, data_num,
+                              100. * iteration / iter_per_epoch, lossval))
+
+    def store_iter_loss(self, lossval):
+        self.total_iteration += 1
+        self.train_losses_iteration += [lossval]
+
+    def update_log_epoch(self, epoch):
+        self.train_losses += [np.mean(self.train_losses_iteration)]
+        self.train_losses_iteration = []
+
+        if self.live_graph:
+            self.live_graph.redraw(epoch, self.total_iteration, np.arange(1, epoch + 1), self.train_losses)
+        else:
+            iter_template = 'Training... Epoch: {}, Iter: {},\tLoss: {:.6f}'
+            print(iter_template.format(
+                epoch, self.total_iteration, self.train_losses[-1]))
 
     def save_checkpoints_model(self, epoch, model):
         info = ''

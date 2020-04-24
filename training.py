@@ -4,6 +4,7 @@ from models.loss import CrossEntropy
 from data.datasets import AllTrackNetTennis
 from data.transforms import GaussianHeatMap, LossHeatMap
 
+from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision.transforms import *
 from torch.optim.adadelta import Adadelta

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-import csv
+import csv, logging
 import cv2
 from lxml import etree as ET
 from collections import OrderedDict
@@ -62,7 +62,9 @@ def _generate_annotaion_xml(update=False):
     owner = OrderedDict()
     owner['name'] = 'Yu-Chuan Huang'
 
-    for csv_posixpath in csv_posixpaths:
+    logging.info('Generating xml files...')
+
+    for i, csv_posixpath in enumerate(csv_posixpaths):
         relpath = os.path.relpath(csv_posixpath, base_path) # e.g. 'game1/Clip1/Label.csv'
         relpath = Path(relpath).parent # posixpath, e.g. 'game1/Clip1
 
@@ -91,12 +93,15 @@ def _generate_annotaion_xml(update=False):
                 filename, _ = os.path.splitext(filename)
                 filename += '.xml'
                 et.write(os.path.join(_thisdir, base_path, relpath, filename), encoding='utf-8', pretty_print=True)
+        logging.info('{}% {}/{}'.format(int(100*(float(i)/len(csv_posixpaths))), i + 1, len(csv_posixpaths)))
 
-        # get xml and csv path again
-        xml_posixpaths = sorted(Path(base_path).rglob('*.xml'),
-                                key=lambda posixpath: str(posixpath))  # list of PosixPath class
-        xml_paths = [str(xml_posixpath) for xml_posixpath in xml_posixpaths]
-        return xml_paths
+    logging.info('Finished!!!')
+
+    # get xml and csv path again
+    xml_posixpaths = sorted(Path(base_path).rglob('*.xml'),
+                            key=lambda posixpath: str(posixpath))  # list of PosixPath class
+    xml_paths = [str(xml_posixpath) for xml_posixpath in xml_posixpaths]
+    return xml_paths
 
 def _generate_ET(contents, root='annotation'):
     """
