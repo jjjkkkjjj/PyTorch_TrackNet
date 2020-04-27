@@ -29,6 +29,6 @@ if __name__ == '__main__':
 
     loss_func = CrossEntropy()
     optimizer = Adadelta(model.parameters(), lr=1.0)
-    trainer = Trainer(model, loss_func=loss_func, optimizer=optimizer, scheduler=None, gpu=True)
+    trainer = Trainer(model, loss_func=loss_func, optimizer=optimizer, scheduler=None)
 
     trainer.train(1000, train_loader, savemodelname='tracknet', checkpoints_epoch_interval=50)

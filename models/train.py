@@ -15,7 +15,7 @@ from datetime import date
 
 
 class Trainer(object):
-    def __init__(self, model, loss_func, optimizer, scheduler=None, device='cpu', log_interval=100):
+    def __init__(self, model, loss_func, optimizer, scheduler=None, device=torch.device('cuda'), log_interval=100):
         self.device = device
 
         self.model = model.to(self.device)
