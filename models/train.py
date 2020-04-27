@@ -15,10 +15,10 @@ from datetime import date
 
 
 class Trainer(object):
-    def __init__(self, model, loss_func, optimizer, scheduler=None, gpu=True, log_interval=100):
-        self.gpu = gpu
+    def __init__(self, model, loss_func, optimizer, scheduler=None, device='cpu', log_interval=100):
+        self.device = device
 
-        self.model = model.cuda() if self.gpu else model
+        self.model = model.to(self.device)
         # convert to float
         self.model = self.model.to(dtype=torch.float)
         self.loss_func = loss_func
@@ -53,9 +53,8 @@ class Trainer(object):
             for _iteration, (images, targets) in enumerate(train_loader):
                 self.optimizer.zero_grad()
 
-                if self.gpu:
-                    images = images.cuda()
-                    targets = targets.cuda()
+                images = images.to(self.device)
+                targets = targets.to(self.device)
 
                 # set variable
                 #images.requires_grad = True

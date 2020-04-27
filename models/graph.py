@@ -16,8 +16,8 @@ class LiveGraph(object):
         self.ax = self.fig.add_subplot(111)
         plt.ion()
 
-        self.fig.show()
-        self.fig.canvas.draw()
+        self.fig.show();
+        self.fig.canvas.draw();
 
     def redraw(self, epoch, iteration, losses_iteration, losses):
         if self.fig is None or self.ax is None:
@@ -39,7 +39,7 @@ class LiveGraph(object):
         self.ax.set_xlabel('iteration')
         self.ax.set_ylabel('loss')
         # update
-        self.fig.canvas.draw()
+        self.fig.canvas.draw();
 
     def update_info(self, info):
         if self.fig is None or self.ax is None:
@@ -58,4 +58,4 @@ class LiveGraph(object):
         self.ax.set_xlabel('iteration')
         self.ax.set_ylabel('loss')
         # update
-        self.fig.canvas.draw()
+        self.fig.canvas.draw();

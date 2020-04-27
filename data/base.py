@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import torch, warnings
 
-from ._utils import _generate_annotaion_xml, DATA_ROOT, get_image, get_balls
+from ._utils import _generate_annotaion_xml, Config, get_image, get_balls
 
 class TrackNetTennisDataset(Dataset):
 
@@ -21,7 +21,7 @@ class TrackNetTennisDataset(Dataset):
         # list of posixpath
         self._anno_posixpaths = []
         for game_dir in self._games_dir:
-            anno_posixpaths = sorted(Path(os.path.join(DATA_ROOT, 'tennis_tracknet', game_dir)).rglob('*.xml'), key=lambda posixpath: str(posixpath))
+            anno_posixpaths = sorted(Path(os.path.join(Config.DATA_ROOT, 'tennis_tracknet', game_dir)).rglob('*.xml'), key=lambda posixpath: str(posixpath))
             self._anno_posixpaths.extend(anno_posixpaths)
 
     #def _jpgpath(self, folder, filename):

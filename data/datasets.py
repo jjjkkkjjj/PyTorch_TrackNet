@@ -1,11 +1,11 @@
 from .base import TrackNetTennisDataset
-from ._utils import DATA_ROOT
+from ._utils import Config
 
 import os
 
 class AllTrackNetTennis(TrackNetTennisDataset):
     def __init__(self, seq_num, transform=None, target_transform=None):
-        games_dir = sorted(os.listdir(os.path.join(DATA_ROOT, 'tennis_tracknet')))
+        games_dir = sorted(os.listdir(os.path.join(Config.DATA_ROOT, 'tennis_tracknet')))
         super().__init__(seq_num, games_dir, transform=transform, target_transform=target_transform)
 
 class Game1TrackNetTennis(TrackNetTennisDataset):
