@@ -6,7 +6,9 @@ from lxml import etree as ET
 from collections import OrderedDict
 import numpy as np
 
-_thisdir = os.path.dirname(__file__)
+#_thisdir = os.path.dirname(__file__)
+DATA_ROOT = os.path.join(os.path.expanduser("~"), 'data')
+
 _header = ['file name', 'visibility', 'x-coordinate', 'y-coordinate,status']
 
 def _generate_annotaion_xml(update=False):
@@ -38,7 +40,7 @@ def _generate_annotaion_xml(update=False):
       </ball>
     </annotation>
     """
-    base_path = os.path.join(_thisdir, 'tennis_tracknet')
+    base_path = os.path.join(DATA_ROOT, 'tennis_tracknet')
 
     # get xml and csv path
     xml_posixpaths = sorted(Path(base_path).rglob('*.xml'), key=lambda posixpath: str(posixpath))  # list of PosixPath class
@@ -92,7 +94,7 @@ def _generate_annotaion_xml(update=False):
                 # write
                 filename, _ = os.path.splitext(filename)
                 filename += '.xml'
-                et.write(os.path.join(_thisdir, base_path, relpath, filename), encoding='utf-8', pretty_print=True)
+                et.write(os.path.join(DATA_ROOT, base_path, relpath, filename), encoding='utf-8', pretty_print=True)
         logging.info('{}% {}/{}'.format(int(100*(float(i)/len(csv_posixpaths))), i + 1, len(csv_posixpaths)))
 
     logging.info('Finished!!!')
