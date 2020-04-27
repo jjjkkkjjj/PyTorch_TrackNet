@@ -6,6 +6,7 @@ data/tennis_tracknet/*
 weights/*
 !weights/checkpoints/
 !.gitkeep
+!*.py
 
 weights/checkpoints/*
 !.gitkeep

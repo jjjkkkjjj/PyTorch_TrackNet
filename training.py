@@ -26,6 +26,8 @@ if __name__ == '__main__':
 
     model = TrackNet(image_shape=(360, 640, 3), seq_num=3, batch_norm=True)
     print(model)
+    #import torch
+    #torch.save(model.state_dict(), './weights/tnet_init.pth')
 
     loss_func = CrossEntropy()
     optimizer = Adadelta(model.parameters(), lr=1.0)
