@@ -1,7 +1,10 @@
 from collections import OrderedDict
+import torch
+import numpy as np
+import logging
 
 from tracknet.core._layerutils import *
-from tracknet.core.layers import HeatMap
+from tracknet.core.layers import *
 
 class TrackNet(nn.Module):
     def __init__(self, image_shape=(360, 640, 3), seq_num=3, batch_norm=True):
@@ -45,11 +48,12 @@ class TrackNet(nn.Module):
         feature_layers = [
             *Conv2dRelu.one('8', 64, 256, kernel_size=(3, 3), padding=1),
 
-            ('softmax', nn.Softmax(dim=1)) # dim = 1 means along with channel of (b, c, h, w)
+            ('softmax', SoftMax())#nn.Softmax(dim=1)) # dim = 1 means along with channel of (b, c, h, w)
         ]
         self.feature_layers = nn.ModuleDict(feature_layers)
 
         self.heatmap = HeatMap()
+        self.detector = Detector(threshold=128)
 
         self._init_weights()
 
@@ -85,8 +89,48 @@ class TrackNet(nn.Module):
             return x # shape = (h, w, c)
         else:
             # x's shape = (h, w)
-            heatmap = self.heatmap(x) # -> (c, h, w)
-            return heatmap
+            heatmaps = self.heatmap(x) # (b, c, h, w)-> (b, h, w)
+            return heatmaps
 
-    def inference(self, x):
-        pass
+    def inference(self, imgs):
+        """
+        :param imgs: list of img(ndarray or Tensor), Tensor or ndarray. Note that if it's Tensor or ndarray, shape must be (c, h, w) or (1, c, h, w)
+        :return:
+        """
+        if isinstance(imgs, np.ndarray):
+            imgs = torch.from_numpy(imgs)
+        elif isinstance(imgs, torch.Tensor):
+            pass
+        elif isinstance(imgs, (list, tuple)):
+            if all([isinstance(img, np.ndarray) for img in imgs]):
+                # convert (h, w, c) to (c, h, w)
+                imgs = [torch.from_numpy(img.transpose((2, 0, 1))).unsqueeze(0) for img in imgs]
+            elif all([isinstance(img, torch.Tensor) for img in imgs]):
+                imgs = [img.unsqueeze(0) for img in imgs]
+            else:
+                raise ValueError('imgs must be list of ndarray or Tensor')
+            imgs = torch.cat(imgs, dim=0)
+        else:
+            raise ValueError('imgs must be list, ndarray or Tensor')
+
+        if imgs.ndim == 3:
+            imgs = imgs.unsqueeze(0) # shape = (1(=batch), seq_num*c(=c), h, w)
+
+        if self.training:
+            logging.info('Switched to eval mode')
+            self.eval()
+
+        heatmaps = self(imgs)
+        ret = self.detector(heatmaps)
+
+    def load_weights_from_origin(self, path):
+        src_state_dict = torch.load(path)
+
+        dest_state_dict = self.state_dict()
+        for src_name, src_val in src_state_dict.items():
+            if src_name in dest_state_dict.keys():
+                dest_state_dict[src_name] = src_val
+
+        self.load_state_dict(dest_state_dict)
+
+        print('loaded from {}'.format(path))
