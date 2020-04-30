@@ -1,9 +1,7 @@
-import logging
-from torch import nn
 from collections import OrderedDict
 
-from ._layerutils import *
-from .layers import HeatMap
+from tracknet.core._layerutils import *
+from tracknet.core.layers import HeatMap
 
 class TrackNet(nn.Module):
     def __init__(self, image_shape=(360, 640, 3), seq_num=3, batch_norm=True):

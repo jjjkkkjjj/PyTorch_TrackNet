@@ -1,5 +1,5 @@
-from ._utils import _weights_path
-from .graph import LiveGraph
+from .._utils import _weights_path
+from ..train.graph import LiveGraph
 
 import torch
 import sys
@@ -42,7 +42,7 @@ class Trainer(object):
         :param train_loader: Dataloader, must return Tensor of images and ground truthes
         :param savemodelname: (Optional) str or None, saved model name. if it's None, model will not be saved after finishing training.
         :param checkpoints_epoch_interval: (Optional) int or None, Whether to save for each designated iteration or not. if it's None, model will not be saved.
-        :param max_checkpoints: (Optional) int, how many models will be saved during training.
+        :param max_checkpoints: (Optional) int, how many tracknet will be saved during training.
         :return:
         """
         self.model.train()
@@ -70,7 +70,7 @@ class Trainer(object):
                 if self.scheduler:
                     self.scheduler.step()
             
-                # update log
+                # update train
                 log_manager.update_log(epoch, _iteration + 1, batch_num=len(images), data_num=len(train_loader.dataset),
                                        iter_per_epoch=len(train_loader), lossval=loss.item())
                 log_manager.store_iter_loss(lossval=loss.item())
@@ -117,7 +117,7 @@ class _LogManager(object):
             # initialise the graph and settings
             live_graph.initialize()
 
-        # log's info
+        # train's info
         self.savedir = savedir
         self.save_checkpoints_dir = save_checkpoints_dir
         self.savemodelname = savemodelname

@@ -1,6 +1,6 @@
-from models.tracknet import TrackNet
-from models.train import Trainer
-from models.loss import CrossEntropy
+from tracknet.tracknet import TrackNet
+from tracknet.train import *
+from tracknet.core.loss import CrossEntropy
 from data.datasets import AllTrackNetTennis
 from data.transforms import GaussianHeatMap, LossHeatMap
 
